@@ -100,17 +100,17 @@ the project's base directory - no Python, no workflow YAML - needs to
 change for routine version bumps:
 
 - **`build_matrix`**: the CPU arch / CUDA / Python / Torch combinations to
-  build. The current toolkit is CUDA `13.2.2`, Python `3.11` and `3.12`,
-  Torch `2.13.0` (3.12 matches both verl Dockerfiles' `ARG` defaults, though
-  torch is kept ahead of their `2.11.0` pin; 3.11 is added because torch
-  publishes cp311 cu132 wheels for both arches and downstream envs still run
-  it), on `x86_64` and `aarch64`. The matrix also still carries CUDA
-  `13.0.2` rows: torch 2.14 for `verl`'s vLLM 0.34 (`torch==2.14.0`) cu130
-  stack (`flash-attention`, `transformer-engine`, `apex`, `deep-ep`), torch
-  2.13 for `flashinfer`'s prebuilt data wheels and TransformerEngine, plus
-  torch 2.11 for DeepGEMM's initial VeOmni training stack. DeepGEMM is limited
-  to torch 2.11 + cu130 on Python 3.11/3.12 and x86_64/aarch64. Add another
-  entry to build more combinations.
+  build. The current toolkit is CUDA `13.2.2`, Python `3.12` (3.12 matches
+  both verl Dockerfiles' `ARG` defaults; downstream 3.11 envs stay on
+  `13.0.2`), Torch `2.13.0` (ahead of the Dockerfiles' `2.11.0` pin), on
+  `x86_64` and `aarch64`. The matrix also carries CUDA `13.0.2` rows on
+  Python `3.11`/`3.12`: torch 2.14 for `verl`'s vLLM 0.34 (`torch==2.14.0`)
+  cu130 stack (`flash-attention`, `transformer-engine`, `apex`, `deep-ep` on
+  3.12; `flash-attention` on 3.11), torch 2.13 for `flashinfer`'s prebuilt
+  data wheels, `TransformerEngine`, `apex`, `deep-ep` (3.12) and
+  `flash-attention` (3.11/3.12), plus torch 2.11 for DeepGEMM's initial
+  VeOmni training stack (`flash-attention` and `deep-gemm` on 3.11/3.12).
+  Add another entry to build more combinations.
   Every component is built once per entry here, minus
   the ones its `arches` / `python_versions` / `cuda_versions` /
   `torch_versions` filters exclude. Releases are keyed by component,
