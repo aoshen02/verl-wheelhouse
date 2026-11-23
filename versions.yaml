@@ -30,14 +30,13 @@
 # list, minus entries excluded by its arch / Python / CUDA / torch filters.
 # Add another entry to build additional arch/CUDA/Python/Torch combinations.
 #
-# 3.12 is the version verl's own Dockerfiles pin; 3.11 is built in addition
-# because torch 2.13.0 publishes cp311 cu130 wheels for both arches and
-# downstream verl envs still run 3.11. Components that compile CUDA
-# extensions therefore ship one wheel per interpreter, while components that
-# only emit a portable py3-none-any wheel (megatron-bridge, flashinfer) opt
-# out of 3.11 via `python_versions` below - one wheel installs on every
-# interpreter it supports and a second build would only re-upload an
-# identical asset.
+# 3.12 is the version verl's own Dockerfiles pin; 3.11 is built only on the
+# cu130 worlds for downstream verl envs that still run 3.11 (currently
+# flash-attention and deep-gemm). Components that compile CUDA extensions only
+# needed by verl's 3.12 images (apex, transformer-engine, deep-ep) or that
+# emit a portable py3-none-any wheel (megatron-bridge, flashinfer) opt out of
+# 3.11 via `python_versions` below - one wheel installs on every interpreter
+# it supports and a second build would only re-upload an identical asset.
 #
 # arch: the CPU architecture the wheel is built *for* and *on*, spelled the
 #       way `uname -m` reports it ("x86_64" or "aarch64"); _build.yml asserts
@@ -47,17 +46,10 @@
 #       picks the right one. Omitting the field means "x86_64".
 build_matrix:
   # ---- CUDA 13.2 (current). torch 2.13.0 publishes official +cu132 wheels for
-  # torch/torchvision on both arches and cp311/cp312, so every native kernel
-  # verl consumes builds here. The world /simple/ aliases is set explicitly by
-  # `index.default_world` below (currently cu132/torch2.13), not by row order.
-  - arch: x86_64
-    cuda: "13.2.2"
-    python: "3.11"
-    torch: "2.13.0"
-    torch_vision: "0.28.0"
-    torch_audio: "2.11.0"
-    cxx11_abi: "TRUE"
-
+  # torch/torchvision on both arches and cp312, so every native kernel verl
+  # consumes builds here (downstream py3.11 envs stay on cu130). The world
+  # /simple/ aliases is set explicitly by `index.default_world` below
+  # (currently cu132/torch2.13), not by row order.
   - arch: x86_64
     cuda: "13.2.2"
     python: "3.12"
@@ -78,14 +70,6 @@ build_matrix:
   # opt in one at a time through `arches` below.
   - arch: aarch64
     cuda: "13.2.2"
-    python: "3.11"
-    torch: "2.13.0"
-    torch_vision: "0.28.0"
-    torch_audio: "2.11.0"
-    cxx11_abi: "TRUE"
-
-  - arch: aarch64
-    cuda: "13.2.2"
     python: "3.12"
     torch: "2.13.0"
     torch_vision: "0.28.0"
@@ -95,17 +79,9 @@ build_matrix:
   # ---- CUDA 13.2 + torch 2.12.1: the LOWEST torch that publishes +cu132
   # wheels (cu132 support starts at torch 2.12 - torch 2.11 is cu130-only), so
   # this is the cu132 world for consumers that cannot move to torch 2.13 yet.
-  # torch 2.12.1 + torchvision 0.27.1 ship official +cu132 wheels for
-  # cp311/cp312 on both arches; torchaudio has no cu132 build at all and is
-  # installed best-effort by the toolchain (no builder imports it).
-  - arch: x86_64
-    cuda: "13.2.2"
-    python: "3.11"
-    torch: "2.12.1"
-    torch_vision: "0.27.1"
-    torch_audio: "2.11.0"
-    cxx11_abi: "TRUE"
-
+  # torch 2.12.1 + torchvision 0.27.1 ship official +cu132 wheels for cp312
+  # on both arches; torchaudio has no cu132 build at all and is installed
+  # best-effort by the toolchain (no builder imports it).
   - arch: x86_64
     cuda: "13.2.2"
     python: "3.12"
@@ -116,17 +92,45 @@ build_matrix:
 
   - arch: aarch64
     cuda: "13.2.2"
-    python: "3.11"
+    python: "3.12"
     torch: "2.12.1"
     torch_vision: "0.27.1"
     torch_audio: "2.11.0"
     cxx11_abi: "TRUE"
 
-  - arch: aarch64
-    cuda: "13.2.2"
+  # ---- CUDA 13.0 + torch 2.14.0: cu130 world for vLLM 0.34.0 (which pins
+  # torch==2.14.0 / torchvision==0.29.0) so verl's cu130 uv stack can install
+  # ABI-matching native wheels (flash-attn, transformer-engine, apex, deep-ep)
+  # alongside vLLM 0.34.0 without moving off cu130.
+  - arch: x86_64
+    cuda: "13.0.2"
+    python: "3.11"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
+  - arch: x86_64
+    cuda: "13.0.2"
     python: "3.12"
-    torch: "2.12.1"
-    torch_vision: "0.27.1"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
+  - arch: aarch64
+    cuda: "13.0.2"
+    python: "3.11"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
+  - arch: aarch64
+    cuda: "13.0.2"
+    python: "3.12"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
     torch_audio: "2.11.0"
     cxx11_abi: "TRUE"
 
@@ -365,7 +369,10 @@ components:
     ref: master # both verl Dockerfiles build unpinned git+https://github.com/NVIDIA/apex.git (NVIDIA/apex's default branch is "master", not "main")
     builder: apex
     wheel_packages: [apex]
-    cuda_versions: ["13.2.2"]
+    cuda_versions: ["13.2.2", "13.0.2"]
+    torch_versions: ["2.12.1", "2.13.0", "2.14.0"]
+    # Downstream py3.11 cu130 envs do not build apex/TE; keep apex on 3.12 like TE.
+    python_versions: ["3.12"]
     torch_cuda_arch_list: "7.5;8.0;8.6;9.0;10.0;11.0;12.0"
     requires_cudnn: false
     # apex spawns one plain nvcc per translation unit (no nested threading),
@@ -400,7 +407,7 @@ components:
     wheel_packages: [transformer-engine]
     cuda_versions: ["13.2.2", "13.0.2"]
     # Preserve the main-line TE matrix when adding DeepGEMM's torch 2.11 rows.
-    torch_versions: ["2.12.1", "2.13.0"]
+    torch_versions: ["2.12.1", "2.13.0", "2.14.0"]
     # verl's Dockerfiles pin Python 3.12; skip cp311 rows to halve TE runner time.
     python_versions: ["3.12"]
     torch_cuda_arch_list: "8.0;9.0;10.0"
@@ -528,7 +535,10 @@ components:
     builder: deep_ep
     # setup.py's distribution name is deep_ep, which normalizes to deep-ep.
     wheel_packages: [deep-ep]
-    cuda_versions: ["13.2.2"]
+    cuda_versions: ["13.2.2", "13.0.2"]
+    torch_versions: ["2.12.1", "2.13.0", "2.14.0"]
+    # Only verl's 3.12 stack uses DeepEP.
+    python_versions: ["3.12"]
     # x86_64 includes Ampere (A100, 8.0) plus Hopper/Blackwell. Upstream
     # setup.py cannot fat-bin those: DISABLE_SM90_FEATURES=1 is global and
     # also drops NVSHMEM. ci/patches/enable_deep_ep_sm80.py rewrites the
