@@ -105,10 +105,12 @@ change for routine version bumps:
   torch is kept ahead of their `2.11.0` pin; 3.11 is added because torch
   publishes cp311 cu132 wheels for both arches and downstream envs still run
   it), on `x86_64` and `aarch64`. The matrix also still carries CUDA
-  `13.0.2` rows: torch 2.13 for `flashinfer`'s prebuilt data wheels and
-  TransformerEngine, plus torch 2.11 for DeepGEMM's initial VeOmni
-  training stack. DeepGEMM is limited to torch 2.11 + cu130 on Python
-  3.11/3.12 and x86_64/aarch64. Add another entry to build more combinations.
+  `13.0.2` rows: torch 2.14 for `verl`'s vLLM 0.34 (`torch==2.14.0`) cu130
+  stack (`flash-attention`, `transformer-engine`, `apex`, `deep-ep`), torch
+  2.13 for `flashinfer`'s prebuilt data wheels and TransformerEngine, plus
+  torch 2.11 for DeepGEMM's initial VeOmni training stack. DeepGEMM is limited
+  to torch 2.11 + cu130 on Python 3.11/3.12 and x86_64/aarch64. Add another
+  entry to build more combinations.
   Every component is built once per entry here, minus
   the ones its `arches` / `python_versions` / `cuda_versions` /
   `torch_versions` filters exclude. Releases are keyed by component,
@@ -270,13 +272,17 @@ pip install --extra-index-url https://verl-project.github.io/verl-wheelhouse/sim
 ```
 
 The currently published worlds are `cu130/torch2.11`, `cu130/torch2.13`,
-`cu132/torch2.12` and `cu132/torch2.13` (the landing page lists exactly
-what exists). Notes:
+`cu130/torch2.14`, `cu132/torch2.12` and `cu132/torch2.13` (the landing page
+lists exactly what exists). Notes:
 
 - `cu132/torch2.13` is the default `/simple` world and carries every native
   component; `cu132/torch2.12` exists because torch 2.12.1 is the **lowest**
   torch that publishes `+cu132` wheels (torch 2.11 is cu130-only), so it is
   the cu132 world for consumers not yet on torch 2.13.
+- `cu130/torch2.14` carries the native wheels `verl`'s cu130 uv stack pulls
+  from the wheelhouse (`flash-attn`, `transformer-engine`, `apex`, `deep-ep`,
+  plus world-agnostic `megatron-bridge`) against `torch==2.14.0+cu130` for
+  vLLM 0.34.0.
 - `cu130/torch2.13` carries the native kernels too (republished from
   retained build artifacts after the cu130 -> cu132 move) plus `flashinfer`,
   whose rehosted jit-cache/cubin data wheels are not published for cu132.

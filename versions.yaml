@@ -130,6 +130,42 @@ build_matrix:
     torch_audio: "2.11.0"
     cxx11_abi: "TRUE"
 
+  # ---- CUDA 13.0 + torch 2.14.0: cu130 world for vLLM 0.34.0 (which pins
+  # torch==2.14.0 / torchvision==0.29.0) so verl's cu130 uv stack can install
+  # ABI-matching native wheels (flash-attn, transformer-engine, apex, deep-ep)
+  # alongside vLLM 0.34.0 without moving off cu130.
+  - arch: x86_64
+    cuda: "13.0.2"
+    python: "3.11"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
+  - arch: x86_64
+    cuda: "13.0.2"
+    python: "3.12"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
+  - arch: aarch64
+    cuda: "13.0.2"
+    python: "3.11"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
+  - arch: aarch64
+    cuda: "13.0.2"
+    python: "3.12"
+    torch: "2.14.0"
+    torch_vision: "0.29.0"
+    torch_audio: "2.11.0"
+    cxx11_abi: "TRUE"
+
   # ---- CUDA 13.0 (legacy verl cu130 stack). flashinfer rehosts prebuilt
   # jit-cache / -cubin data wheels from flashinfer.ai (no cu132 index yet).
   # transformer-engine also builds here so cu130/torch2.13 consumers can install
@@ -365,7 +401,8 @@ components:
     ref: master # both verl Dockerfiles build unpinned git+https://github.com/NVIDIA/apex.git (NVIDIA/apex's default branch is "master", not "main")
     builder: apex
     wheel_packages: [apex]
-    cuda_versions: ["13.2.2"]
+    cuda_versions: ["13.2.2", "13.0.2"]
+    torch_versions: ["2.12.1", "2.13.0", "2.14.0"]
     torch_cuda_arch_list: "7.5;8.0;8.6;9.0;10.0;11.0;12.0"
     requires_cudnn: false
     # apex spawns one plain nvcc per translation unit (no nested threading),
@@ -400,7 +437,7 @@ components:
     wheel_packages: [transformer-engine]
     cuda_versions: ["13.2.2", "13.0.2"]
     # Preserve the main-line TE matrix when adding DeepGEMM's torch 2.11 rows.
-    torch_versions: ["2.12.1", "2.13.0"]
+    torch_versions: ["2.12.1", "2.13.0", "2.14.0"]
     # verl's Dockerfiles pin Python 3.12; skip cp311 rows to halve TE runner time.
     python_versions: ["3.12"]
     torch_cuda_arch_list: "8.0;9.0;10.0"
@@ -528,7 +565,8 @@ components:
     builder: deep_ep
     # setup.py's distribution name is deep_ep, which normalizes to deep-ep.
     wheel_packages: [deep-ep]
-    cuda_versions: ["13.2.2"]
+    cuda_versions: ["13.2.2", "13.0.2"]
+    torch_versions: ["2.12.1", "2.13.0", "2.14.0"]
     # x86_64 includes Ampere (A100, 8.0) plus Hopper/Blackwell. Upstream
     # setup.py cannot fat-bin those: DISABLE_SM90_FEATURES=1 is global and
     # also drops NVSHMEM. ci/patches/enable_deep_ep_sm80.py rewrites the
